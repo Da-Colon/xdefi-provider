@@ -22,7 +22,9 @@ const Landing = () => {
             </option>
           ))}
         </select>
-        <PrimaryButton label="Connect Account" isLoading={!provider} onClick={connectToAccount} />
+        { !account &&
+          <PrimaryButton label="Connect Account" isLoading={!provider} onClick={connectToAccount} />
+        }
       </div>
     </div>
   );

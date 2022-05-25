@@ -23,9 +23,8 @@ export const DEFAULT_PROVIDER_CONTEXT: BlockchainProviderContext = [DEFAULT_CONN
 const useProvider = () => {
   const [selectedBlockchain, setSelectedBlockchain] = useState<string>();
   const [xFiProvider, setXfiProvider] = useState<any>();
-  const [provider, setProvider] = useState<any>();
-  const [signer, setSigner] = useState<any>();
-  const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo>();
+  // Connection
+  const [connection, setConnection] = useState<Connection>(DEFAULT_CONNECTION);
 
   const selectBlockchain = (blockchain: string) => {
     if (supportedBlockchains.includes(blockchain)) {
@@ -39,7 +38,7 @@ const useProvider = () => {
       if (accounts.length) {
         const web3Provider = new ethers.providers.Web3Provider(xFiProvider);
         const signer = web3Provider.getSigner();
-        setSigner(signer);
+        setConnection((prevConnection) => ({ ...prevConnection, signer }));
       }
       return;
     }
@@ -95,13 +94,13 @@ const useProvider = () => {
   const connectProvider = useCallback(async () => {
     if (xFiProvider) {
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.ethereum) {
-        const web3Provider = new ethers.providers.Web3Provider(xFiProvider);
-        const handleAccountRes = await xFiProvider.handleAccounts();
-        if (handleAccountRes.length) {
-          const signer = web3Provider.getSigner();
-          setSigner(signer);
+        const provider = new ethers.providers.Web3Provider(xFiProvider);
+        const accounts = await xFiProvider.getaccounts();
+        let signer: any;
+        if (accounts.length) {
+          signer = provider.getSigner();
         }
-        setProvider(web3Provider);
+        setConnection((prevConnection) => ({ ...prevConnection, signer, provider }));
         return;
       }
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.bitcoin) {
@@ -110,9 +109,8 @@ const useProvider = () => {
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.litecoin) {
         // @todo add litecoin support
       }
-      setProvider(undefined);
-      setSigner(undefined);
     }
+    // @todo should this reset to default if reached?
   }, [xFiProvider, selectedBlockchain]);
 
   useEffect(() => {
@@ -123,10 +121,10 @@ const useProvider = () => {
    * updates connection info
    */
   const createConnectionInfo = useCallback(async () => {
-    if (signer && selectedBlockchain) {
-      let connectionInfo = _DEFAULT_CONNECTION_INFO;
+    let connectionInfo = _DEFAULT_CONNECTION_INFO;
+    if (connection.signer) {
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.ethereum) {
-        const account = await signer.getAddress();
+        const account = await connection.signer.getAddress();
         connectionInfo.account = account;
       }
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.bitcoin) {
@@ -137,9 +135,9 @@ const useProvider = () => {
       }
       connectionInfo.chainId = xFiProvider.chainId;
       connectionInfo.network = selectedBlockchain;
-      setConnectionInfo(connectionInfo);
     }
-  }, [signer, selectedBlockchain, xFiProvider]);
+    setConnection((prevConnection) => ({ ...prevConnection, ...connectionInfo }));
+  }, [connection.signer, selectedBlockchain, xFiProvider]);
 
   useEffect(() => {
     createConnectionInfo();
@@ -151,28 +149,24 @@ const useProvider = () => {
   useEffect(() => {
     const changeChainListener = (event: any) => {
       console.log(`chainChanged::${event.chainId}`, event);
-      setXfiProvider(undefined);
     };
     const changeAccountsListener = (event: any) => {
       console.log(`accountsChanged::${event.chainId}`, event);
-      setXfiProvider(undefined);
     };
     if (xFiProvider) {
       // subscribe to provider events
       xFiProvider.on("chainChanged", changeChainListener);
       xFiProvider.on("accountsChanged", changeAccountsListener);
     }
-    if (provider) {
+    if (connection.provider) {
       // subscribe to Network events
-      provider.on("chainChanged", changeChainListener);
+      connection.provider.on("chainChanged", changeChainListener);
 
       // subscribe to account change events
-      provider.on("accountsChanged", changeAccountsListener);
+      connection.provider.on("accountsChanged", changeAccountsListener);
 
       // subscribe to provider disconnection
-      provider.on("disconnect", () => {
-        setXfiProvider(undefined);
-      });
+      connection.provider.on("disconnect", () => {});
     }
 
     return () => {
@@ -181,13 +175,13 @@ const useProvider = () => {
         xFiProvider.off("chainChanged", changeChainListener);
         xFiProvider.off("chainChanged", changeAccountsListener);
       }
-      if (provider) {
-        provider.off("chainChanged", changeChainListener);
-        provider.off("accountsChanged", changeAccountsListener);
-        provider.off("disconnect");
+      if (connection.provider) {
+        connection.provider.off("chainChanged", changeChainListener);
+        connection.provider.off("accountsChanged", changeAccountsListener);
+        connection.provider.off("disconnect");
       }
     };
-  }, [xFiProvider, provider]);
+  }, [xFiProvider, connection.provider]);
 
   /**
    * @see BlockchainProviderContext
@@ -197,17 +191,7 @@ const useProvider = () => {
    * @see Disconnect
    *
    */
-  return [
-    {
-      provider,
-      signer,
-      selectedBlockchain,
-      ...connectionInfo,
-    },
-    selectBlockchain,
-    connectToAccount,
-    () => null,
-  ] as const;
+  return [connection, selectBlockchain, connectToAccount, () => null] as const;
 };
 
 export default useProvider;
