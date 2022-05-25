@@ -1,21 +1,17 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from "react";
+import useProvider from "./useProvider";
 
-
-const createBlockchainProvider = (context: any) => {
-  const blockchainRoot = ({ children }: { children: React.ReactNode }) => {
-
-    return (
-      <context.Provider value={{}}>
-        {children}
-      </context.Provider>
-    );
+const createBlockchainProvider = (context: React.Context<any>) => {
+  const BlockchainRoot = ({ children }: { children: React.ReactNode }) => {
+    const provider = useProvider();
+    return <context.Provider value={provider}>{children}</context.Provider>;
   };
 
-  return blockchainRoot;
+  return BlockchainRoot;
 };
 
-const blockchainProviderContext = createContext(undefined);
-const BlockchainProvider = createBlockchainProvider(null);
-const useProvider: () => undefined = () => useContext(blockchainProviderContext);
+const blockchainProviderContext = createContext({});
+const BlockchainProvider = createBlockchainProvider(blockchainProviderContext);
+const useBlockchainProvider: () => {} = () => useContext(blockchainProviderContext);
 
-export { BlockchainProvider, useProvider };
+export { BlockchainProvider, useBlockchainProvider };
