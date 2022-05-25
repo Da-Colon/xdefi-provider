@@ -23,7 +23,6 @@ export const DEFAULT_PROVIDER_CONTEXT: BlockchainProviderContext = [DEFAULT_CONN
 const useProvider = () => {
   const [selectedBlockchain, setSelectedBlockchain] = useState<string>();
   const [xFiProvider, setXfiProvider] = useState<any>();
-  // Connection
   const [connection, setConnection] = useState<Connection>(DEFAULT_CONNECTION);
 
   const selectBlockchain = (blockchain: string) => {
@@ -76,7 +75,7 @@ const useProvider = () => {
       }
       const xfiBitcoin: any = xfi.bitcoin;
       if (xfiBitcoin && selectedBlockchain === SUPPORTED_BLOCKCHAINS.bitcoin) {
-        setXfiProvider(xfiEthereum);
+        setXfiProvider(xfiBitcoin);
       }
       const xfiLitecoin: any = xfi.litecoin;
       if (xfiLitecoin && selectedBlockchain === SUPPORTED_BLOCKCHAINS.litecoin) {
@@ -121,7 +120,7 @@ const useProvider = () => {
    * updates connection info
    */
   const createConnectionInfo = useCallback(async () => {
-    let connectionInfo = _DEFAULT_CONNECTION_INFO;
+    let connectionInfo = {..._DEFAULT_CONNECTION_INFO};
     if (connection.signer) {
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.ethereum) {
         const account = await connection.signer.getAddress();
