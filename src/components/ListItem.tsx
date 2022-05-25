@@ -1,4 +1,4 @@
-const ListItem = ({ title, info }: { title: string; info: string }) => {
+const ListItem = ({ title, info }: { title: string; info: string | number }) => {
   return (
     <div className="flex justify-between">
       <span className="text-gray-100 mr-4">{title}:</span>
