@@ -9,8 +9,8 @@ export interface Connection extends ConnectionInfo {
 
 export interface ConnectionInfo {
   account?: string | null,
-  chainId?: string | number | null, // @todo is consistently number or string?
-  network?: string | null,
+  chainId?: string | number, // @todo is consistently number or string?
+  network?: string,
 }
 
 export type BlockchainProviderContext = readonly [Connection, SelectBlockchain, Connect, Disconnect];

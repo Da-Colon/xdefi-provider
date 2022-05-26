@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-const _DEFAULT_CONNECTION_INFO: ConnectionInfo = { account: null, network: null, chainId: null };
+const _DEFAULT_CONNECTION_INFO: ConnectionInfo = { account: null };
 export const DEFAULT_CONNECTION: Connection = {
   provider: null,
   signer: null,
