@@ -28,6 +28,8 @@ const useProvider = () => {
   const selectBlockchain = (blockchain: string) => {
     if (supportedBlockchains.includes(blockchain)) {
       setSelectedBlockchain(blockchain);
+      setConnection(DEFAULT_CONNECTION)
+      setXfiProvider(undefined);
     }
   };
 
@@ -39,10 +41,11 @@ const useProvider = () => {
         const signer = web3Provider.getSigner();
         setConnection((prevConnection) => ({ ...prevConnection, signer }));
       }
-      return;
     }
     if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.bitcoin) {
-      // ? how do you connect (get signer) to bitcoin wallet?
+      xFiProvider.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
+        setConnection((prevConnection) => ({ ...prevConnection, account: accounts[0] }));
+      });
     }
     if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.litecoin) {
       // ? how do you connect (get signer) for litecoin wallet?
@@ -94,22 +97,21 @@ const useProvider = () => {
     if (xFiProvider) {
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.ethereum) {
         const provider = new ethers.providers.Web3Provider(xFiProvider);
-        const accounts = await xFiProvider.getaccounts();
         let signer: any;
+        const accounts = await xFiProvider.handleAccounts();
         if (accounts.length) {
           signer = provider.getSigner();
         }
-        setConnection((prevConnection) => ({ ...prevConnection, signer, provider }));
+        setConnection((prevConnection) => ({ ...prevConnection, provider, signer }));
         return;
       }
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.bitcoin) {
-        // @todo add bitcoin support
+        setConnection((prevConnection) => ({ ...prevConnection, provider: 'bitcoin', signer: 'bitcoin' }));
       }
       if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.litecoin) {
-        // @todo add litecoin support
+        setConnection((prevConnection) => ({ ...prevConnection, provider: 'litecoin', signer: 'litecoin' }));
       }
     }
-    // @todo should this reset to default if reached?
   }, [xFiProvider, selectedBlockchain]);
 
   useEffect(() => {
@@ -120,21 +122,25 @@ const useProvider = () => {
    * updates connection info
    */
   const createConnectionInfo = useCallback(async () => {
-    let connectionInfo = {..._DEFAULT_CONNECTION_INFO};
-    if (connection.signer) {
-      if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.ethereum) {
-        const account = await connection.signer.getAddress();
-        connectionInfo.account = account;
-      }
-      if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.bitcoin) {
-        // @todo add bitcoin support
-      }
-      if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.litecoin) {
-        // @todo add litecoin support
+    let connectionInfo = { ..._DEFAULT_CONNECTION_INFO };
+    if (xFiProvider) {
+      if (connection.signer) {
+        if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.ethereum) {
+          const account = await connection.signer.getAddress();
+          connectionInfo.account = account;
+        }
+        if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.bitcoin) {
+          xFiProvider.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
+            setConnection((prevConnection) => ({ ...prevConnection, account: accounts[0] }));
+          });
+        }
+        if (selectedBlockchain === SUPPORTED_BLOCKCHAINS.litecoin) {
+          // @todo add litecoin support
+        }
       }
       connectionInfo.chainId = xFiProvider.chainId;
-      connectionInfo.network = selectedBlockchain;
     }
+    connectionInfo.network = selectedBlockchain;
     setConnection((prevConnection) => ({ ...prevConnection, ...connectionInfo }));
   }, [connection.signer, selectedBlockchain, xFiProvider]);
 
@@ -146,23 +152,29 @@ const useProvider = () => {
    * subcribes to xFi provider events
    */
   useEffect(() => {
-    const changeChainListener = (event: any) => {
-      console.log(`chainChanged::${event.chainId}`, event);
+    const xfiChainIdListener = (event: any) => {
+      console.log("🚀 ~ xdefi chain changed", event);
     };
-    const changeAccountsListener = (event: any) => {
-      console.log(`accountsChanged::${event.chainId}`, event);
+    const xfiAccountListener = (event: any) => {
+      console.log("🚀 ~ Xdefi Account changed", event);
+    };
+    const web3AccountListener = (event: any) => {
+      console.log("🚀 ~ Web3 Account changed", event);
+    };
+    const web3ChainIdListener = (event: any) => {
+      console.log("🚀 ~ Web3 Account changed", event);
     };
     if (xFiProvider) {
       // subscribe to provider events
-      xFiProvider.on("chainChanged", changeChainListener);
-      xFiProvider.on("accountsChanged", changeAccountsListener);
+      xFiProvider.on("chainChanged", xfiChainIdListener);
+      xFiProvider.on("accountsChanged", xfiAccountListener);
     }
-    if (connection.provider) {
+    if (connection.provider instanceof ethers.providers.Web3Provider) {
       // subscribe to Network events
-      connection.provider.on("chainChanged", changeChainListener);
+      connection.provider.on("chainChanged", web3ChainIdListener);
 
       // subscribe to account change events
-      connection.provider.on("accountsChanged", changeAccountsListener);
+      connection.provider.on("accountsChanged", web3AccountListener);
 
       // subscribe to provider disconnection
       connection.provider.on("disconnect", () => {});
@@ -171,12 +183,12 @@ const useProvider = () => {
     return () => {
       // unsubscribe to provider events
       if (xFiProvider) {
-        xFiProvider.off("chainChanged", changeChainListener);
-        xFiProvider.off("chainChanged", changeAccountsListener);
+        xFiProvider.off("chainChanged", xfiChainIdListener);
+        xFiProvider.off("accountsChanged", xfiAccountListener);
       }
-      if (connection.provider) {
-        connection.provider.off("chainChanged", changeChainListener);
-        connection.provider.off("accountsChanged", changeAccountsListener);
+      if (connection.provider instanceof ethers.providers.Web3Provider) {
+        connection.provider.off("chainChanged", web3ChainIdListener);
+        connection.provider.off("accountsChanged", web3AccountListener);
         connection.provider.off("disconnect");
       }
     };
