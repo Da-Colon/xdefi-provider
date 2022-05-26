@@ -4,6 +4,8 @@ export const SUPPORTED_BLOCKCHAINS: { bitcoin: string; litecoin: string; ethereu
   litecoin: "litecoin",
 };
 
+export const NON_EVM_CHAINS = ['bitcoin', 'litecoin']
+
 /**
  * defines supported blockchains
  * any static data that is needed for supported blockchains should be saved here, for easy lookup
@@ -32,3 +34,4 @@ export const CHAINS = {
   [SUPPORTED_BLOCKCHAINS.bitcoin]: BITCOIN,
   [SUPPORTED_BLOCKCHAINS.litecoin]: LITECOIN
 };
+
