@@ -34,57 +34,71 @@ const useProvider = () => {
     }
   };
 
+  const injectedEthereumProvider = useCallback(async () => {
+    const xfiEthereum = xfi["ethereum"];
+    let signer: Signer | undefined;
+    const web3Provider = new ethers.providers.Web3Provider(xfiEthereum);
+    try {
+      const accounts = await xfiEthereum.getaccounts();
+      if (accounts.length) {
+        signer = web3Provider.getSigner();
+      }
+      setConnection({
+        signer,
+        provider: web3Provider,
+        chainId: xfiEthereum.chainId,
+        network: "ethereum",
+        account: accounts[0],
+      });
+    } catch {
+      setConnection({
+        provider: web3Provider,
+        chainId: xfiEthereum.chainId,
+        network: "ethereum",
+      });
+    }
+  }, [xfi]);
+
+  const injectedBitcoinProvider = useCallback(async () => {
+    const xfiBitcoin = xfi["bitcoin"];
+    await xfiBitcoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
+      setConnection({
+        signer: null,
+        provider: null,
+        account: accounts[0],
+        chainId: xfiBitcoin.chainId,
+        network: xfiBitcoin.chainId,
+      });
+    });
+  }, [xfi]);
+
+  const injectedLitecoinProvider = useCallback(async () => {
+    const xfiLitecoin = xfi["litecoin"];
+    await xfiLitecoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
+      setConnection({
+        signer: null,
+        provider: null,
+        account: accounts[0],
+        chainId: xfiLitecoin.chainId,
+        network: xfiLitecoin.chainId,
+      });
+    });
+  }, [xfi]);
+
   /**
    * connect to account of selected wallet
    * @note only needs to connect once per wallet (unless manually disconnected)
    */
-  const connect = async () => {
+  const connect = useCallback(async () => {
     switch (selectedBlockchain) {
-      case SUPPORTED_BLOCKCHAINS.ethereum: {
-        const xfiEthereum = xfi["ethereum"];
-        let signer: Signer | undefined;
-        const accounts = await xfiEthereum.getaccounts().catch(console.error);
-        const web3Provider = new ethers.providers.Web3Provider(xfiEthereum);
-        if (accounts.length) {
-          signer = web3Provider.getSigner();
-        }
-        setConnection({
-          signer,
-          provider: web3Provider,
-          chainId: xfiEthereum.chainId,
-          network: selectedBlockchain,
-          account: accounts[0],
-        });
-        break;
-      }
-      case SUPPORTED_BLOCKCHAINS.bitcoin: {
-        const xfiBitcoin = xfi["bitcoin"];
-        await xfiBitcoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection({
-            signer: null,
-            provider: null,
-            account: accounts[0],
-            chainId: xfiBitcoin.chaindId,
-            network: xfiBitcoin.chainId,
-          });
-        });
-        break;
-      }
-      case SUPPORTED_BLOCKCHAINS.litecoin: {
-        const xfiLitecoin = xfi["litecoin"];
-        await xfiLitecoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection({
-            signer: null,
-            provider: null,
-            account: accounts[0],
-            chainId: xfiLitecoin.chaindId,
-            network: xfiLitecoin.chaindId,
-          });
-        });
-        break;
-      }
+      case SUPPORTED_BLOCKCHAINS.ethereum:
+        return injectedEthereumProvider();
+      case SUPPORTED_BLOCKCHAINS.bitcoin:
+        return injectedBitcoinProvider();
+      case SUPPORTED_BLOCKCHAINS.litecoin:
+        return injectedLitecoinProvider();
     }
-  };
+  }, [injectedEthereumProvider, injectedBitcoinProvider, injectedLitecoinProvider, selectedBlockchain]);
 
   /**
    * checks for xdefi wallet and connects default selected chain (ethereum)
@@ -98,70 +112,9 @@ const useProvider = () => {
     }
   }, [xfi]);
 
-  /**
-   * attempts to connect to selected provider
-   * @requires xdefi wallet
-   * @requires selectedBlockchain
-   */
-  const connectProvider = useCallback(async () => {
-    switch (selectedBlockchain) {
-      case SUPPORTED_BLOCKCHAINS.ethereum: {
-        const xfiEthereum = xfi["ethereum"];
-        let signer: Signer | undefined;
-        const web3Provider = new ethers.providers.Web3Provider(xfiEthereum);
-        try {
-          const accounts = await xfiEthereum.getaccounts();
-          if (accounts.length) {
-            signer = web3Provider.getSigner();
-          }
-          setConnection({
-            signer,
-            provider: web3Provider,
-            chainId: xfiEthereum.chainId,
-            network: selectedBlockchain,
-            account: accounts[0],
-          });
-        } catch {
-          setConnection({
-            provider: web3Provider,
-            chainId: xfiEthereum.chainId,
-            network: selectedBlockchain,
-          });
-        }
-        break;
-      }
-      case SUPPORTED_BLOCKCHAINS.bitcoin: {
-        const xfiBitcoin = xfi["bitcoin"];
-        await xfiBitcoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection({
-            signer: null,
-            provider: xfiBitcoin,
-            account: accounts[0],
-            chainId: xfiBitcoin.chainId,
-            network: selectedBlockchain,
-          });
-        });
-        break;
-      }
-      case SUPPORTED_BLOCKCHAINS.litecoin: {
-        const xfiLitecoin = xfi["litecoin"];
-        await xfiLitecoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection({
-            signer: null,
-            provider: xfiLitecoin,
-            account: accounts[0],
-            chainId: xfiLitecoin.chainId,
-            network: selectedBlockchain,
-          });
-        });
-        break;
-      }
-    }
-  }, [selectedBlockchain, xfi]);
-
   useEffect(() => {
-    connectProvider();
-  }, [connectProvider]);
+    connect();
+  }, [connect]);
 
   /**
    * updates connection info
