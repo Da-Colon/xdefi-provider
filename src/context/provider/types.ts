@@ -10,16 +10,16 @@ export interface XdefiProvider {
   web3Provider: ethers.providers.Web3Provider | null;
   xfiEthereumProvider: any | null;
   web3Signer: ethers.providers.JsonRpcSigner | null;
-  web3Account: string | null;
+  web3Account?: string | null;
   ethChainId: number | null; // @todo is consistently number or string?
   // bitcoin provider
   xfiBitcoinProvider: any | null;
   bitcoinNetwork: string | null;
-  bitcoinAccount: string | null;
+  bitcoinAccount?: string | null;
   // litecoin provider
   xfiLiteCoinProvider: any | null;
   litecoinNetwork: string | null;
-  litecoinAccount: string | null;
+  litecoinAccount?: string | null;
 }
 
 export type BlockchainProviderContext = readonly [XdefiProvider, Connect, Disconnect];
