@@ -1,4 +1,4 @@
-import { ethers, Signer } from "ethers";
+import { ethers } from "ethers";
 
 export type SelectBlockchain = () => void;
 export type Connect = () => Promise<void>;
