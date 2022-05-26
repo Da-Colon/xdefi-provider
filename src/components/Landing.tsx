@@ -1,13 +1,28 @@
 import { useBlockchainProvider } from "../context/provider";
-import { supportedBlockchains } from "../context/provider/networks";
 import { PrimaryButton } from "./Button";
 import ListItem from "./ListItem";
 
 const Landing = () => {
-  const [{ provider, signer, account, network, chainId }, selectBlockchain, connectToAccount] = useBlockchainProvider();
+  const [
+    {
+      isConnected,
+      web3Provider,
+      web3Signer,
+      web3Account,
+      xfiEthereumProvider,
+      ethChainId,
+      xfiBitcoinProvider,
+      bitcoinNetwork,
+      bitcoinAccount,
+      xfiLiteCoinProvider,
+      litecoinNetwork,
+      litecoinAccount,
+    },
+    connectToAccount,
+  ] = useBlockchainProvider();
   const personalSignEth = async () => {
     let message = "Hello World";
-    const flatSig = await signer.signMessage(message);
+    const flatSig = await web3Signer!.signMessage(message);
     console.log("🚀 ~ file: Landing.tsx ~ line 11 ~ flatSig", flatSig);
   };
 
@@ -15,21 +30,22 @@ const Landing = () => {
     <div>
       <div className="p-4 m-4 border border-white rounded-lg w-1/2">
         <div>
-          <ListItem title="Connected Blockchain" info={network || "Not Connected"} />
-          <ListItem title="Connected ChainId" info={chainId || "Not Connected"} />
-          <ListItem title="Connected Account Address" info={account || "Not Connected"} />
+          <div>Ethereum Connection</div>
+          <ListItem title="Web3 Account Address" info={web3Account || "Not Connected"} />
+          <ListItem title="Web3 Chain id" info={ethChainId || "Not Connected"} />
+
+          <div>Bitcoin Connection</div>
+          <ListItem title="Bitcoin Account Address" info={bitcoinAccount || "Not Connected"} />
+          <ListItem title="Bitcoin connected Network" info={bitcoinNetwork || "Not Connected"} />
+
+          <div>Litecoin Connection</div>
+          <ListItem title="Connected Account Address" info={litecoinAccount || "Not Connected"} />
+          <ListItem title="Litecoin connected Network" info={litecoinNetwork || "Not Connected"} />
         </div>
       </div>
       <div className="p-4 m-4">
-        <select name="blockchains" className="my-4 mx-2 p-4 py-2 rounded-lg" value={network} onChange={(e) => selectBlockchain(e.target.value)}>
-          {supportedBlockchains.map((network: string) => (
-            <option value={network} key={network}>
-              {network}
-            </option>
-          ))}
-        </select>
-        {!account && <PrimaryButton label="Connect Account" isLoading={!provider} onClick={connectToAccount} />}
-        {account && network === 'ethereum' && (
+        {!isConnected && <PrimaryButton label="Connect Account" onClick={connectToAccount} />}
+        {isConnected && (
           <div>
             <PrimaryButton label="Sign Eth Message" onClick={personalSignEth} />
           </div>
