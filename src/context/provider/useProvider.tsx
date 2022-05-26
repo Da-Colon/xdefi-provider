@@ -42,40 +42,44 @@ const useProvider = () => {
     switch (selectedBlockchain) {
       case SUPPORTED_BLOCKCHAINS.ethereum: {
         const xfiEthereum = xfi["ethereum"];
-        let signer: Signer;
-        const accounts = await xfiEthereum.getaccounts();
+        let signer: Signer | undefined;
+        const accounts = await xfiEthereum.getaccounts().catch(console.error);
         const web3Provider = new ethers.providers.Web3Provider(xfiEthereum);
         if (accounts.length) {
           signer = web3Provider.getSigner();
         }
-        setConnection((prevConnection) => ({ ...prevConnection, signer, provider: web3Provider, chainId: xfiEthereum.chainId, network: selectedBlockchain }));
+        setConnection({
+          signer,
+          provider: web3Provider,
+          chainId: xfiEthereum.chainId,
+          network: selectedBlockchain,
+          account: accounts[0],
+        });
         break;
       }
       case SUPPORTED_BLOCKCHAINS.bitcoin: {
         const xfiBitcoin = xfi["bitcoin"];
-        xfiBitcoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection((prevConnection) => ({
-            ...prevConnection,
+        await xfiBitcoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
+          setConnection({
             signer: null,
             provider: null,
             account: accounts[0],
-            chaindId: xfiBitcoin.chaindId,
+            chainId: xfiBitcoin.chaindId,
             network: xfiBitcoin.chainId,
-          }));
+          });
         });
         break;
       }
       case SUPPORTED_BLOCKCHAINS.litecoin: {
         const xfiLitecoin = xfi["litecoin"];
-        xfiLitecoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection((prevConnection) => ({
-            ...prevConnection,
+        await xfiLitecoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
+          setConnection({
             signer: null,
             provider: null,
             account: accounts[0],
-            chaindId: xfiLitecoin.chaindId,
+            chainId: xfiLitecoin.chaindId,
             network: xfiLitecoin.chaindId,
-          }));
+          });
         });
         break;
       }
@@ -103,48 +107,52 @@ const useProvider = () => {
     switch (selectedBlockchain) {
       case SUPPORTED_BLOCKCHAINS.ethereum: {
         const xfiEthereum = xfi["ethereum"];
-        let account: string;
-        const provider = new ethers.providers.Web3Provider(xfiEthereum);
-        const signerOrProvider = provider.getSigner();
-        const accounts = await xfiEthereum.handleAccounts();
-        if (accounts.length) {
-          account = await signerOrProvider.getAddress();
+        let signer: Signer | undefined;
+        const web3Provider = new ethers.providers.Web3Provider(xfiEthereum);
+        try {
+          const accounts = await xfiEthereum.getaccounts();
+          if (accounts.length) {
+            signer = web3Provider.getSigner();
+          }
+          setConnection({
+            signer,
+            provider: web3Provider,
+            chainId: xfiEthereum.chainId,
+            network: selectedBlockchain,
+            account: accounts[0],
+          });
+        } catch {
+          setConnection({
+            provider: web3Provider,
+            chainId: xfiEthereum.chainId,
+            network: selectedBlockchain,
+          });
         }
-        setConnection((prevConnection) => ({
-          ...prevConnection,
-          account,
-          provider,
-          signerOrProvider,
-          chainId: xfiEthereum.chainId,
-          network: selectedBlockchain,
-        }));
         break;
       }
       case SUPPORTED_BLOCKCHAINS.bitcoin: {
         const xfiBitcoin = xfi["bitcoin"];
         await xfiBitcoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection((prevConnection) => ({
-            ...prevConnection,
+          setConnection({
             signer: null,
             provider: xfiBitcoin,
             account: accounts[0],
             chainId: xfiBitcoin.chainId,
             network: selectedBlockchain,
-          }));
+          });
         });
         break;
       }
       case SUPPORTED_BLOCKCHAINS.litecoin: {
         const xfiLitecoin = xfi["litecoin"];
         await xfiLitecoin.request({ method: "request_accounts", params: [] }, (error: any, accounts: string[]) => {
-          setConnection((prevConnection) => ({
-            ...prevConnection,
+          setConnection({
             signer: null,
             provider: xfiLitecoin,
             account: accounts[0],
             chainId: xfiLitecoin.chainId,
             network: selectedBlockchain,
-          }));
+          });
         });
         break;
       }
